@@ -2,6 +2,8 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: {{ include "well-known.fullname" . }}
+  labels:
+    {{- include "well-known.labels" . | nindent 4 }}
 data:
   default.conf: |
     server {
