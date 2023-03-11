@@ -53,6 +53,12 @@ spec:
           args: [
             "-namespace", "{{ .Release.Namespace }}"
           ]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

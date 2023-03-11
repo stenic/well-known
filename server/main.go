@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +38,7 @@ func main() {
 	}
 	flag.StringVar(&namespace, "namespace", "default", "namespace")
 	flag.StringVar(&cmName, "configmap", "well-known-generated", "")
-	flag.StringVar(&id, "id", uuid.New().String(), "the holder identity name")
+	flag.StringVar(&id, "id", os.Getenv("POD_NAME"), "the holder identity name")
 	flag.StringVar(&leaseLockName, "lease-lock-name", "well-known", "the lease lock resource name")
 
 	flag.Parse()
