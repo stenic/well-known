@@ -1,0 +1,22 @@
+[
+  {
+    "name": "exclude-default-namespace-control",
+    "policyType": "postureExceptionPolicy",
+    "actions": [
+      "alertOnly"
+    ],
+    "resources": [
+      {
+        "designatorType": "Attributes",
+        "attributes": {
+          "kind": ".*"
+        }
+      }
+    ],
+    "posturePolicies": [
+      {
+        "controlID": "CIS-5.7.4"
+      }
+    ]
+  }
+]
