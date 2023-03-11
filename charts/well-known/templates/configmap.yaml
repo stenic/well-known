@@ -1,0 +1,28 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "well-known.fullname" . }}
+data:
+  default.conf: |
+    server {
+      listen       8080;
+      server_name  _;
+
+      location /.well-known/ {
+        default_type application/json;
+        root   /usr/share/nginx/html;
+        try_files $uri $uri/ $uri.json $uri/index.json =404;
+      }
+
+      error_page 400 404 405 =200 @40*_json;
+      location @40*_json {
+        default_type application/json;
+        return 200 '{"code":"1", "message": "Not Found"}';
+      }
+
+      error_page 500 502 503 504 =200 @50*_json;
+      location @50*_json {
+        default_type application/json;
+        return 200 '{"code":"1", "message": "Unknown Error"}';
+      }
+    }
