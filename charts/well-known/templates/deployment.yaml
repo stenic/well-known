@@ -42,7 +42,9 @@ spec:
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: default.conf
             - name: data
-              mountPath: /usr/share/nginx/html
+              mountPath: /usr/share/nginx/html/.well-known
+            - mountPath: /tmp
+              name: tmp-volume
           resources:
             {{- toYaml .Values.webserver.resources | nindent 12 }}
         - name: {{ .Chart.Name }}
@@ -51,7 +53,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: [
-            "-namespace", "{{ .Release.Namespace }}"
+            "-namespace", "{{ .Release.Namespace }}",
+            "-configmap", "{{ include "well-known.fullname" . }}-data"
           ]
           env:
             - name: POD_NAME
@@ -81,3 +84,5 @@ spec:
           configMap:
             name: {{ include "well-known.fullname" . }}-data
             optional: true
+        - name: tmp-volume
+          emptyDir: {}
