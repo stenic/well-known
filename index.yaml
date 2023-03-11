@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   well-known:
   - apiVersion: v2
+    appVersion: 1.0.4
+    created: "2023-03-11T22:42:23.455060607Z"
+    description: A Helm chart for Kubernetes
+    digest: 3aaaed14697740cfadf0d1f6c271e25e55c5083a8cc79d91af7e68d332487365
+    name: well-known
+    type: application
+    urls:
+    - https://github.com/stenic/well-known/releases/download/well-known-0.2.4/well-known-0.2.4.tgz
+    version: 0.2.4
+  - apiVersion: v2
     appVersion: 1.0.3
     created: "2023-03-11T21:42:04.749093726Z"
     description: A Helm chart for Kubernetes
@@ -31,4 +41,4 @@ entries:
     urls:
     - https://github.com/stenic/well-known/releases/download/well-known-0.2.1/well-known-0.2.1.tgz
     version: 0.2.1
-generated: "2023-03-11T21:42:04.749111127Z"
+generated: "2023-03-11T22:42:23.455074107Z"
