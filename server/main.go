@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -85,6 +86,18 @@ func main() {
 			Identity: id,
 		},
 	}
+
+	go func() {
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		klog.Info("Running /healthz endpoint on :8081")
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			klog.Error(err)
+			os.Exit(1)
+		}
+	}()
 
 	// start the leader election code loop
 	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{

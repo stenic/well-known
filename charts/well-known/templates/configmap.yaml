@@ -26,3 +26,18 @@ data:
         return 200 '{"code":"1", "message": "Unknown Error"}';
       }
     }
+    server {
+      listen 8082;
+      server_name localhost;
+      root /usr/share/nginx/html;
+
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+
+      location /healthz {
+        allow 127.0.0.1;
+        stub_status;
+        server_tokens on;
+      }
+    }
