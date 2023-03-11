@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.7](https://github.com/stenic/well-known/compare/v1.0.6...v1.0.7) (2023-03-11)
+
+
+### Bug Fixes
+
+* kubescape ([ff9f270](https://github.com/stenic/well-known/commit/ff9f2705d74189bdebd3886bfb05ee027e78ad3b))
+
 ## [1.0.6](https://github.com/stenic/well-known/compare/v1.0.5...v1.0.6) (2023-03-11)
 
 
