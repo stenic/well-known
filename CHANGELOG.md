@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.3](https://github.com/stenic/well-known/compare/v1.0.2...v1.0.3) (2023-03-11)
+
+
+### Bug Fixes
+
+* Chart audit ([a2c0ca0](https://github.com/stenic/well-known/commit/a2c0ca02db611fac143ef412b25903da4aaf5006))
+* Chart audit ([8def55b](https://github.com/stenic/well-known/commit/8def55bfe6b54fe6b4cf70b36085cd5bee4b4562))
+
 ## [1.0.2](https://github.com/stenic/well-known/compare/v1.0.1...v1.0.2) (2023-03-11)
 
 
