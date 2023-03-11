@@ -5,9 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: nginxinc/nginx-unprivileged
+  repository: ghcr.io/stenic/well-known
   pullPolicy: IfNotPresent
-  tag: "1.23"
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
 
 resources: {}
 # We usually recommend not to specify default resources and to leave this as a conscious
