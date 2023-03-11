@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.2](https://github.com/stenic/well-known/compare/v1.0.1...v1.0.2) (2023-03-11)
+
+
+### Bug Fixes
+
+* Leader election ([6431474](https://github.com/stenic/well-known/commit/643147495110524eb68ae347f99ea9a32f090f60))
+
 ## [1.0.1](https://github.com/stenic/well-known/compare/v1.0.0...v1.0.1) (2023-03-11)
 
 
