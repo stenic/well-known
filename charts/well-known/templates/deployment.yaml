@@ -48,13 +48,13 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.wellKnown.image.repository }}:{{ .Values.wellKnown.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.wellKnown.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: [
             "-namespace", "{{ .Release.Namespace }}"
           ]
           resources:
-            {{- toYaml .Values.wellKnown.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
