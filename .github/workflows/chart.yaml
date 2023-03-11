@@ -59,7 +59,7 @@ jobs:
 
       - name: Run audit
         run: |
-          polaris audit --helm-chart ./charts/k8status --helm-values ./charts/k8status/values.yaml --format pretty --set-exit-code-on-danger --set-exit-code-below-score 90
+          polaris audit --helm-chart ./charts/well-known --helm-values ./charts/well-known/values.yaml --format pretty --set-exit-code-on-danger --set-exit-code-below-score 90
   
   kubescape-scan:
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
           version: v3.7.1
 
       - name: Scan helm 
-        run: helm template ./charts/k8status --generate-name --dry-run | kubescape scan --controls-config .github/kubescape-controls-inputs.json -v --fail-threshold 5 -
+        run: helm template ./charts/well-known --generate-name --dry-run | kubescape scan --controls-config .github/kubescape-controls-inputs.json -v --fail-threshold 5 -
 
   pluto-scan:
     runs-on: ubuntu-latest
@@ -98,4 +98,4 @@ jobs:
 
       - name: Use pluto
         run: |
-          helm template ./charts/k8status -f ./charts/k8status/ci/pluto-values.yaml | pluto detect - --ignore-deprecations
+          helm template ./charts/well-known -f ./charts/well-known/ci/pluto-values.yaml | pluto detect - --ignore-deprecations

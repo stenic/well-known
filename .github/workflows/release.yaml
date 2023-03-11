@@ -10,6 +10,6 @@ jobs:
     uses: stenic/github-workflows/.github/workflows/release-docker-helm.yaml@main
     with:
       docker_image: "ghcr.io/${{ github.repository }}"
-      chart_path: './charts/k8status'
+      chart_path: './charts/well-known'
     secrets:
       token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
