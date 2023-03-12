@@ -86,6 +86,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+networkpolicies:
+  enabled: false
+  kubeApiServerCIDR: "<IP>/32" # kubectl get svc -n default kubernetes
+
 nodeSelector: {}
 
 tolerations: []

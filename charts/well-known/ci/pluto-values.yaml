@@ -3,3 +3,7 @@ ingress:
 
 autoscaling:
   enabled: true
+
+networkpolicies:
+  enabled: true
+  kubeApiServerCIDR: 1.2.3.4/32

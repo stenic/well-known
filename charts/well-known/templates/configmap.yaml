@@ -2,6 +2,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: {{ include "well-known.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "well-known.labels" . | nindent 4 }}
 data:

@@ -56,12 +56,8 @@
     "registry.hub.docker.com"
   ],
   "recommendedLabels": [
-    "app",
-    "tier",
-    "phase",
-    "version",
-    "owner",
-    "env"
+    "app.kubernetes.io/name",
+    "app.kubernetes.io/instance"
   ],
   "sensitiveInterfaces": [
     "nifi",
