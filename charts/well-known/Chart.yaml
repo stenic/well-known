@@ -4,3 +4,12 @@ description: A Helm chart for Kubernetes
 type: application
 version: 0.2.11
 appVersion: 1.0.11
+maintainers:
+  - email: dries@stenic.io
+    name: Stenic
+icon: https://raw.githubusercontent.com/stenic/well-known/gh-pages/images/logo.png
+home: https://github.com/stenic/well-known/tree/main/charts/well-known
+sources:
+  - https://github.com/stenic/well-known
+keywords:
+  - well-known
