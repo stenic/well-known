@@ -78,7 +78,7 @@ jobs:
           version: v3.7.1
 
       - name: Scan helm 
-        run: helm template ./charts/well-known -f ./charts/well-known/ci/pluto-values.yaml | kubescape scan --controls-config .github/kubescape-controls-inputs.json -v --fail-threshold 5 -
+        run: helm template ./charts/well-known --namespace fake -f ./charts/well-known/ci/pluto-values.yaml | kubescape scan --controls-config .github/kubescape-controls-inputs.json -v --fail-threshold 5 -
 
   pluto-scan:
     runs-on: ubuntu-latest
