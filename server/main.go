@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	klog "k8s.io/klog/v2"
 
+	"github.com/bep/debounce"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -134,6 +135,8 @@ func loop(ctx context.Context, clientset *kubernetes.Clientset) {
 		os.Exit(1)
 	}
 
+	debounced := debounce.New(500 * time.Millisecond)
+
 	for event := range watch.ResultChan() {
 		svc, ok := event.Object.(*v1.Service)
 		if !ok {
@@ -141,16 +144,19 @@ func loop(ctx context.Context, clientset *kubernetes.Clientset) {
 		}
 		klog.Infof("Change detected on %s", svc.GetName())
 
-		reg, err := discoverData(clientset, namespace)
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
+		debounced(func() {
+			reg, err := discoverData(clientset, namespace)
+			if err != nil {
+				klog.Error(err)
+				return
+			}
 
-		klog.Info("Writing configmap")
-		if err := updateConfigMap(ctx, clientset, reg); err != nil {
-			klog.Error(err)
-		}
+			klog.Info("Writing configmap")
+			if err := updateConfigMap(ctx, clientset, reg); err != nil {
+				klog.Error(err)
+			}
+		})
+
 	}
 }
 
@@ -164,20 +170,13 @@ func discoverData(clientset *kubernetes.Clientset, ns string) (wkRegistry, error
 	if err != nil {
 		return reg, err
 	}
-	r := regexp.MustCompile(`^well-known.stenic.io/(.+)$`)
 
 	for _, svc := range svcs.Items {
 		for name, value := range svc.ObjectMeta.Annotations {
-			// Skip any non
-			if !r.MatchString(name) {
+			name = resolveName(name)
+			if name == "" {
 				continue
 			}
-			m := r.FindStringSubmatch(name)
-			if len(m) != 2 {
-				klog.Warningf("failed to resolve name: %s", name)
-				continue
-			}
-			name = m[1]
 
 			if _, ok := reg[name]; !ok {
 				reg[name] = make(wkData, 0)
@@ -189,15 +188,22 @@ func discoverData(clientset *kubernetes.Clientset, ns string) (wkRegistry, error
 				klog.Error(err)
 			}
 
-			for k, v := range d {
-				if _, ok := reg[name][k]; ok {
-					klog.Warningf("key \"%s\" already exists", k)
-				}
-				reg[name][k] = v
-			}
+			reg[name].append(d)
 		}
 	}
 	return reg, nil
+}
+
+func resolveName(name string) string {
+	r := regexp.MustCompile(`^well-known.stenic.io/(.+)$`)
+	if !r.MatchString(name) {
+		return ""
+	}
+	m := r.FindStringSubmatch(name)
+	if len(m) != 2 {
+		return ""
+	}
+	return m[1]
 }
 
 func updateConfigMap(ctx context.Context, client kubernetes.Interface, reg wkRegistry) error {
@@ -225,22 +231,4 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, reg wkReg
 
 	klog.Infof("Updated ConfigMap %s/%s\n", cm.GetNamespace(), cm.GetName())
 	return nil
-}
-
-type wkData map[string]interface{}
-type wkRegistry map[string]wkData
-
-func (reg wkRegistry) encode() map[string]string {
-	d := make(map[string]string, len(reg))
-
-	for name, data := range reg {
-		file, err := json.MarshalIndent(data, "", "  ")
-		if err != nil {
-			klog.Error(err)
-		} else {
-			d[name+".json"] = string(file)
-		}
-	}
-
-	return d
 }
