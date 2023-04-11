@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"syscall"
 	"time"
 
@@ -192,18 +191,6 @@ func discoverData(clientset *kubernetes.Clientset, ns string) (wkRegistry, error
 		}
 	}
 	return reg, nil
-}
-
-func resolveName(name string) string {
-	r := regexp.MustCompile(`^well-known.stenic.io/(.+)$`)
-	if !r.MatchString(name) {
-		return ""
-	}
-	m := r.FindStringSubmatch(name)
-	if len(m) != 2 {
-		return ""
-	}
-	return m[1]
 }
 
 func updateConfigMap(ctx context.Context, client kubernetes.Interface, reg wkRegistry) error {

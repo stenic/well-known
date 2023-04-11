@@ -27,3 +27,20 @@ func Test_wkData_append(t *testing.T) {
 		})
 	}
 }
+
+func Test_wkRegistry_encode(t *testing.T) {
+
+	tests := []struct {
+		name string
+		reg  wkRegistry
+		want map[string]string
+	}{
+		{"simple", wkRegistry{"a": wkData{"b": 1}}, map[string]string{"a.json": "{\n  \"b\": 1\n}"}},
+		{"double", wkRegistry{"a": wkData{"b": 1}, "b": wkData{"c": 2}}, map[string]string{"a.json": "{\n  \"b\": 1\n}", "b.json": "{\n  \"c\": 2\n}"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.reg.encode(), "expected: %v, got: %v", tt.want, tt.reg.encode())
+		})
+	}
+}

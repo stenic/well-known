@@ -10,6 +10,9 @@ RUN go mod download
 # Copy the go source
 COPY ./server/*.go ./
 
+# Test
+RUN go test -v ./...
+
 # Build
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o well-known ./
 

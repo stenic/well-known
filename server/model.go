@@ -36,30 +36,6 @@ func (reg wkRegistry) encode() map[string]string {
 	return d
 }
 
-func mergeMapsRecursive(x1, x2 interface{}) interface{} {
-	switch x1 := x1.(type) {
-	case map[string]interface{}:
-		x2, ok := x2.(map[string]interface{})
-		if !ok {
-			return x1
-		}
-		for k, v2 := range x2 {
-			if v1, ok := x1[k]; ok {
-				x1[k] = mergeMapsRecursive(v1, v2)
-			} else {
-				x1[k] = v2
-			}
-		}
-	case nil:
-		// merge(nil, map[string]interface{...}) -> map[string]interface{...}
-		x2, ok := x2.(map[string]interface{})
-		if ok {
-			return x2
-		}
-	}
-	return x1
-}
-
 func mergeStructs(x1, x2 interface{}) interface{} {
 	if reflect.TypeOf(x1) != reflect.TypeOf(x2) {
 		return x1
