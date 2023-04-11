@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/stenic/well-known/compare/v1.2.2...v1.3.0) (2023-04-11)
+
+
+### Bug Fixes
+
+* Remove logo ([8a489bd](https://github.com/stenic/well-known/commit/8a489bd0fa35c7f2cb10b236ddc4cc3aa72ce95e))
+
+
+### Features
+
+* Sync packages ([11b77d2](https://github.com/stenic/well-known/commit/11b77d2044541b1c5fce32a3946d4d7b86b9c9df))
+
 ## [1.2.2](https://github.com/stenic/well-known/compare/v1.2.1...v1.2.2) (2023-04-11)
 
 
