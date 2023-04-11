@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.2](https://github.com/stenic/well-known/compare/v1.2.1...v1.2.2) (2023-04-11)
+
+
+### Bug Fixes
+
+* Add more tests and run them ([60591f5](https://github.com/stenic/well-known/commit/60591f5f8b1f1d6aa2a9727796fd212ded0a8fba))
+
 ## [1.2.1](https://github.com/stenic/well-known/compare/v1.2.0...v1.2.1) (2023-04-11)
 
 
