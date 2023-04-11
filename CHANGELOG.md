@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/stenic/well-known/compare/v1.1.0...v1.2.0) (2023-04-11)
+
+
+### Bug Fixes
+
+* Add missing build files ([532577a](https://github.com/stenic/well-known/commit/532577a12ab9207992d61b9920b3669bb2a4685f))
+
+
+### Features
+
+* Add recursive merge and debounce ([bd689f1](https://github.com/stenic/well-known/commit/bd689f1bb8fce98b3724b0a61a60ec8d4d951867))
+
 # [1.1.0](https://github.com/stenic/well-known/compare/v1.0.11...v1.1.0) (2023-03-12)
 
 
