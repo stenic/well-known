@@ -8,10 +8,10 @@ COPY ./go.* .
 RUN go mod download
 
 # Copy the go source
-COPY ./server/main.go main.go
+COPY ./server/*.go ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -a -o well-known main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o well-known ./
 
 
 FROM alpine AS downloader
