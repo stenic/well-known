@@ -108,7 +108,10 @@ func main() {
 		RetryPeriod:     5 * time.Second,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
-				loop(ctx, clientset)
+				for {
+					// ensure that we keep observing
+					loop(ctx, clientset)
+				}
 			},
 			OnStoppedLeading: func() {
 				klog.Infof("leader lost: %s", id)
@@ -155,7 +158,6 @@ func loop(ctx context.Context, clientset *kubernetes.Clientset) {
 				klog.Error(err)
 			}
 		})
-
 	}
 }
 
