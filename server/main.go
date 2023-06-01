@@ -23,6 +23,8 @@ import (
 
 	"github.com/bep/debounce"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/davegardnerisme/deephash"
 )
 
 var kubeconfig string
@@ -32,6 +34,7 @@ var id string
 var leaseLockName string
 
 func main() {
+	klog.InitFlags(nil)
 	if home := homedir.HomeDir(); home != "" {
 		flag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
@@ -41,7 +44,6 @@ func main() {
 	flag.StringVar(&cmName, "configmap", "well-known-generated", "")
 	flag.StringVar(&id, "id", os.Getenv("POD_NAME"), "the holder identity name")
 	flag.StringVar(&leaseLockName, "lease-lock-name", "well-known", "the lease lock resource name")
-
 	flag.Parse()
 
 	// creates the in-cluster config
@@ -138,13 +140,14 @@ func loop(ctx context.Context, clientset *kubernetes.Clientset) {
 	}
 
 	debounced := debounce.New(500 * time.Millisecond)
+	hash := []byte{}
 
 	for event := range watch.ResultChan() {
 		svc, ok := event.Object.(*v1.Service)
 		if !ok {
 			continue
 		}
-		klog.Infof("Change detected on %s", svc.GetName())
+		klog.V(1).Infof("Change detected on %s", svc.GetName())
 
 		debounced(func() {
 			reg, err := discoverData(clientset, namespace)
@@ -152,6 +155,13 @@ func loop(ctx context.Context, clientset *kubernetes.Clientset) {
 				klog.Error(err)
 				return
 			}
+
+			newHash := deephash.Hash(reg)
+			if string(hash) == string(newHash) {
+				klog.V(1).Info("No changes detected")
+				return
+			}
+			hash = newHash
 
 			klog.Info("Writing configmap")
 			if err := updateConfigMap(ctx, clientset, reg); err != nil {

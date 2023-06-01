@@ -19,6 +19,7 @@ require (
 require (
 	github.com/bep/debounce v1.2.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davegardnerisme/deephash v0.0.0-20210406090112-6d072427d830
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
