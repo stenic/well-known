@@ -1,0 +1,13 @@
+{{- if and (gt (.Values.replicaCount | int) 1) (.Values.podDisruptionBudget) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "well-known.fullname" . }}
+  labels:
+    {{- include "well-known.labels" . | nindent 4 }}
+spec:
+  {{ toYaml .Values.podDisruptionBudget }}
+  selector:
+    matchLabels:
+      {{- include "well-known.selectorLabels" . | nindent 6 }}
+{{- end }}
