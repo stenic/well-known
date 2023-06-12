@@ -10,6 +10,10 @@ data:
     server {
       listen       8080;
       server_name  _;
+      
+    {{- if not .Values.webserver.config.accessLogEnabled }}
+      access_log off;
+    {{- end }}
 
       location /.well-known/ {
         default_type application/json;
