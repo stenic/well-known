@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.6.0](https://github.com/stenic/well-known/compare/v1.5.0...v1.6.0) (2023-06-12)
+
+
+### Features
+
+* Allow scaledown ([e13df93](https://github.com/stenic/well-known/commit/e13df93dd8dec00b2fe392a92bb68c3d2ae10a23))
+
 # [1.5.0](https://github.com/stenic/well-known/compare/v1.4.0...v1.5.0) (2023-06-12)
 
 
