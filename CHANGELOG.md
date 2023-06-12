@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.5.0](https://github.com/stenic/well-known/compare/v1.4.0...v1.5.0) (2023-06-12)
+
+
+### Features
+
+* Disable access_logs by default ([838f183](https://github.com/stenic/well-known/commit/838f18395c2b2ee686246ada6d303478af980965))
+
 # [1.4.0](https://github.com/stenic/well-known/compare/v1.3.1...v1.4.0) (2023-06-01)
 
 
