@@ -16,7 +16,7 @@ spec:
   ingress:
     # Accept all traffic on http port
     - ports:
-        - name: http
+        - port: http
           protocol: TCP
   egress:
     # Allow all traffic to the kubernetes API
