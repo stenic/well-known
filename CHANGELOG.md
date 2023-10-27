@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.7.0](https://github.com/stenic/well-known/compare/v1.6.0...v1.7.0) (2023-10-27)
+
+
+### Features
+
+* Improve netpol config ([d45d26c](https://github.com/stenic/well-known/commit/d45d26cef43e9fc658496d640e908ca4ceacd617))
+
 # [1.6.0](https://github.com/stenic/well-known/compare/v1.5.0...v1.6.0) (2023-06-12)
 
 
