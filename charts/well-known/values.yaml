@@ -22,7 +22,7 @@ webserver:
   image:
     repository: nginxinc/nginx-unprivileged
     pullPolicy: Always
-    tag: "1.23"
+    tag: "1.25"
   resources:
     limits:
       cpu: 50m
