@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.7.2](https://github.com/stenic/well-known/compare/v1.7.1...v1.7.2) (2023-11-10)
+
+
+### Bug Fixes
+
+* Update dependecies ([2b9f064](https://github.com/stenic/well-known/commit/2b9f064f033ee0661c56a75e7a44a39eddbe8b5e))
+* Update nginx image ([bc5285c](https://github.com/stenic/well-known/commit/bc5285c694e4208a103b170ef75d804a0fe17968))
+
 ## [1.7.1](https://github.com/stenic/well-known/compare/v1.7.0...v1.7.1) (2023-10-27)
 
 
