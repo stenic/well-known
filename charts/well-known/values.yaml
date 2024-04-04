@@ -18,22 +18,7 @@ resources:
     cpu: 20m
     memory: 32Mi
 
-webserver:
-  image:
-    repository: nginxinc/nginx-unprivileged
-    pullPolicy: Always
-    tag: "1.25"
-  resources:
-    limits:
-      cpu: 50m
-      memory: 24Mi
-    requests:
-      cpu: 10m
-      memory: 10Mi
-  config:
-    accessLogEnabled: false
-
-podDisruptionBudget: 
+podDisruptionBudget:
   maxUnavailable: 1
 
 imagePullSecrets: []
@@ -93,8 +78,9 @@ autoscaling:
 
 networkpolicies:
   enabled: false
-  kubeApi: [] # kubectl get svc -n default kubernetes -oyaml
-    # - addresses: 
+  kubeApi: []
+    # kubectl get svc -n default kubernetes -oyaml
+    # - addresses:
     #     - 10.0.0.153
     #     - 10.0.0.90
     #   ports:

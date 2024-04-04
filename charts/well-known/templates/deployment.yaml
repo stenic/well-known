@@ -30,36 +30,6 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: webserver
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.webserver.image.repository }}:{{ .Values.webserver.image.tag }}"
-          imagePullPolicy: {{ .Values.webserver.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-            - name: probe
-              containerPort: 8082
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: probe
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: probe
-          volumeMounts:
-            - name: config
-              mountPath: /etc/nginx/conf.d/default.conf
-              subPath: default.conf
-            - name: data
-              mountPath: /usr/share/nginx/html/.well-known
-            - mountPath: /tmp
-              name: tmp-volume
-          resources:
-            {{- toYaml .Values.webserver.resources | nindent 12 }}
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -76,6 +46,9 @@ spec:
                   apiVersion: v1
                   fieldPath: metadata.name
           ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
             - name: probe
               containerPort: 8081
               protocol: TCP
@@ -101,13 +74,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-        - name: config
-          configMap:
-            name: {{ include "well-known.fullname" . }}
-        - name: data
-          configMap:
-            name: {{ include "well-known.fullname" . }}-data
-            optional: true
-        - name: tmp-volume
-          emptyDir: {}

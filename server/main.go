@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"net/http"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,19 +18,21 @@ import (
 	"k8s.io/client-go/util/homedir"
 	klog "k8s.io/klog/v2"
 
-	"github.com/bep/debounce"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/davegardnerisme/deephash"
 )
 
-var kubeconfig string
-var namespace string
-var cmName string
-var id string
-var leaseLockName string
+var (
+	kubeconfig    string
+	namespace     string
+	cmName        string
+	id            string
+	leaseLockName string
 
-func main() {
+	serverPort string
+	healthPort string
+)
+
+func parseFlags() {
 	klog.InitFlags(nil)
 	if home := homedir.HomeDir(); home != "" {
 		flag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -44,9 +43,16 @@ func main() {
 	flag.StringVar(&cmName, "configmap", "well-known-generated", "")
 	flag.StringVar(&id, "id", os.Getenv("POD_NAME"), "the holder identity name")
 	flag.StringVar(&leaseLockName, "lease-lock-name", "well-known", "the lease lock resource name")
+	flag.StringVar(&serverPort, "server-port", "8080", "server port")
+	flag.StringVar(&healthPort, "health-port", "8081", "health port")
 	flag.Parse()
 
-	// creates the in-cluster config
+	if id == "" {
+		klog.Fatal("id is required")
+	}
+}
+
+func getClientset() *kubernetes.Clientset {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -59,6 +65,13 @@ func main() {
 	if err != nil {
 		klog.Fatal(err)
 	}
+
+	return clientset
+}
+
+func main() {
+	// Parse flags
+	parseFlags()
 
 	// use a Go context so we can tell the leaderelection code when we
 	// want to step down
@@ -76,34 +89,41 @@ func main() {
 		cancel()
 	}()
 
-	// we use the Lease lock type since edits to Leases are less common
-	// and fewer objects in the cluster watch "all Leases".
-	lock := &resourcelock.LeaseLock{
-		LeaseMeta: metav1.ObjectMeta{
-			Name:      leaseLockName,
-			Namespace: namespace,
-		},
-		Client: clientset.CoordinationV1(),
-		LockConfig: resourcelock.ResourceLockConfig{
-			Identity: id,
-		},
-	}
+	// Connect to the cluster
+	clientset := getClientset()
 
+	wks := NewWellKnownService(clientset, namespace, cmName)
+
+	// Start the server
 	go func() {
-		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
-
-		klog.Info("Running /healthz endpoint on :8081")
-		if err := http.ListenAndServe(":8081", nil); err != nil {
+		klog.Infof("Running /.well-known/{id} endpoint on :%s", serverPort)
+		if err := http.ListenAndServe(":"+serverPort, GetServer(wks)); err != nil {
 			klog.Error(err)
 			os.Exit(1)
 		}
 	}()
 
-	// start the leader election code loop
+	// Start the health server
+	go func() {
+		klog.Infof("Running /healthz endpoint on :%s", healthPort)
+		if err := http.ListenAndServe(":"+healthPort, GetHealthServer()); err != nil {
+			klog.Error(err)
+			os.Exit(1)
+		}
+	}()
+
+	// Start the leader election code loop
 	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
-		Lock:            lock,
+		Lock: &resourcelock.LeaseLock{
+			LeaseMeta: metav1.ObjectMeta{
+				Name:      leaseLockName,
+				Namespace: namespace,
+			},
+			Client: clientset.CoordinationV1(),
+			LockConfig: resourcelock.ResourceLockConfig{
+				Identity: id,
+			},
+		},
 		ReleaseOnCancel: true,
 		LeaseDuration:   60 * time.Second,
 		RenewDeadline:   15 * time.Second,
@@ -112,7 +132,7 @@ func main() {
 			OnStartedLeading: func(ctx context.Context) {
 				for {
 					// ensure that we keep observing
-					loop(ctx, clientset)
+					wks.DiscoveryLoop(ctx)
 				}
 			},
 			OnStoppedLeading: func() {
@@ -127,107 +147,4 @@ func main() {
 			},
 		},
 	})
-}
-
-func loop(ctx context.Context, clientset *kubernetes.Clientset) {
-	watch, err := clientset.
-		CoreV1().
-		Services(namespace).
-		Watch(ctx, metav1.ListOptions{})
-	if err != nil {
-		klog.Error(err)
-		os.Exit(1)
-	}
-
-	debounced := debounce.New(500 * time.Millisecond)
-	hash := []byte{}
-
-	for event := range watch.ResultChan() {
-		svc, ok := event.Object.(*v1.Service)
-		if !ok {
-			continue
-		}
-		klog.V(1).Infof("Change detected on %s", svc.GetName())
-
-		debounced(func() {
-			reg, err := discoverData(clientset, namespace)
-			if err != nil {
-				klog.Error(err)
-				return
-			}
-
-			newHash := deephash.Hash(reg)
-			if string(hash) == string(newHash) {
-				klog.V(1).Info("No changes detected")
-				return
-			}
-			hash = newHash
-
-			klog.Info("Writing configmap")
-			if err := updateConfigMap(ctx, clientset, reg); err != nil {
-				klog.Error(err)
-			}
-		})
-	}
-}
-
-func discoverData(clientset *kubernetes.Clientset, ns string) (wkRegistry, error) {
-	reg := make(wkRegistry, 0)
-
-	svcs, err := clientset.
-		CoreV1().
-		Services(namespace).
-		List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return reg, err
-	}
-
-	for _, svc := range svcs.Items {
-		for name, value := range svc.ObjectMeta.Annotations {
-			name = resolveName(name)
-			if name == "" {
-				continue
-			}
-
-			if _, ok := reg[name]; !ok {
-				reg[name] = make(wkData, 0)
-			}
-
-			var d map[string]interface{}
-			err := json.Unmarshal([]byte(value), &d)
-			if err != nil {
-				klog.Error(err)
-			}
-
-			reg[name].append(d)
-		}
-	}
-	return reg, nil
-}
-
-func updateConfigMap(ctx context.Context, client kubernetes.Interface, reg wkRegistry) error {
-	cm := &v1.ConfigMap{Data: reg.encode()}
-	cm.Namespace = namespace
-	cm.Name = cmName
-
-	_, err := client.
-		CoreV1().
-		ConfigMaps(namespace).
-		Update(ctx, cm, metav1.UpdateOptions{})
-	if errors.IsNotFound(err) {
-		_, err = client.
-			CoreV1().
-			ConfigMaps(namespace).
-			Create(ctx, cm, metav1.CreateOptions{})
-		if err == nil {
-			klog.Infof("Created ConfigMap %s/%s\n", cm.GetNamespace(), cm.GetName())
-		}
-		return err
-	} else if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	klog.Infof("Updated ConfigMap %s/%s\n", cm.GetNamespace(), cm.GetName())
-	return nil
 }
