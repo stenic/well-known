@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bep/debounce"
@@ -51,7 +52,7 @@ func (s *WellKnownService) GetData(ctx context.Context) (*wkRegistry, error) {
 		if err := json.Unmarshal([]byte(data), &d); err != nil {
 			klog.Error(err)
 		}
-		reg[name] = d
+		reg[strings.TrimSuffix(name, ".json")] = d
 	}
 
 	return &reg, nil
