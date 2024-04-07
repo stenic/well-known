@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.8.0](https://github.com/stenic/well-known/compare/v1.7.2...v1.8.0) (2024-04-07)
+
+
+### Features
+
+* Serve data instead of using the nginx container ([0f3d961](https://github.com/stenic/well-known/commit/0f3d961088f925a7537dcf7e954b2c0140a10084))
+
 ## [1.7.2](https://github.com/stenic/well-known/compare/v1.7.1...v1.7.2) (2023-11-10)
 
 
