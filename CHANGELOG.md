@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.8.2](https://github.com/stenic/well-known/compare/v1.8.1...v1.8.2) (2024-10-30)
+
+
+### Bug Fixes
+
+* Upgrade go and deps ([a432746](https://github.com/stenic/well-known/commit/a432746b32ebcd12759565cbf5d9be066280e3c3))
+
 ## [1.8.1](https://github.com/stenic/well-known/compare/v1.8.0...v1.8.1) (2024-04-07)
 
 
