@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"strings"
 	"time"
 
@@ -85,14 +84,13 @@ func (s *WellKnownService) UpdateConfigMap(ctx context.Context, reg wkRegistry) 
 	return nil
 }
 
-func (s *WellKnownService) DiscoveryLoop(ctx context.Context) {
+func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 	watch, err := s.clientset.
 		CoreV1().
 		Services(s.namespace).
 		Watch(ctx, metav1.ListOptions{})
 	if err != nil {
-		klog.Error(err)
-		os.Exit(1)
+		return err
 	}
 
 	debounced := debounce.New(500 * time.Millisecond)
@@ -125,6 +123,7 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) {
 			}
 		})
 	}
+	return nil
 }
 
 func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) {

@@ -135,7 +135,9 @@ func main() {
 					case <-ctx.Done():
 						return
 					default:
-						wks.DiscoveryLoop(ctx)
+						if err := wks.DiscoveryLoop(ctx); err != nil {
+							klog.Error(err)
+						}
 					}
 				}
 			},
