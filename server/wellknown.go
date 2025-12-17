@@ -149,7 +149,7 @@ func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) 
 				reg[name] = make(wkData, 0)
 			}
 
-			var d map[string]interface{}
+			var d map[string]any
 			err := json.Unmarshal([]byte(value), &d)
 			if err != nil {
 				klog.Error(err)

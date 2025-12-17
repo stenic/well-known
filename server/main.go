@@ -131,8 +131,12 @@ func main() {
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
 				for {
-					// ensure that we keep observing
-					wks.DiscoveryLoop(ctx)
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						wks.DiscoveryLoop(ctx)
+					}
 				}
 			},
 			OnStoppedLeading: func() {
