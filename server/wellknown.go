@@ -104,6 +104,7 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer watch.Stop()
 
 	debounced := debounce.New(500 * time.Millisecond)
 	var hashMu sync.Mutex
