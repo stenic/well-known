@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.8.3](https://github.com/stenic/well-known/compare/v1.8.2...v1.8.3) (2025-12-17)
+
+
+### Bug Fixes
+
+* add mutex protection for concurrent access to localCache and hash ([be40778](https://github.com/stenic/well-known/commit/be40778a3a659e29953432a107c979f77d24c9e1))
+* ensure watcher is properly stopped after use in DiscoveryLoop ([464e201](https://github.com/stenic/well-known/commit/464e20137c83c46778030bddbeefcf78c4b403a7))
+* handle context cancellation in leader election discovery loop ([a4bbfc0](https://github.com/stenic/well-known/commit/a4bbfc007921ef0cd9d5ea83e1d1a6ad46a8f2bf))
+
+
+### Performance Improvements
+
+* optimize regex compilation in annotations and remove unused variable ([a33697d](https://github.com/stenic/well-known/commit/a33697db1ba13015bd231bbc6b0021d03cbde934))
+
 ## [1.8.2](https://github.com/stenic/well-known/compare/v1.8.1...v1.8.2) (2024-10-30)
 
 
