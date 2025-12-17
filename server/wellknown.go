@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bep/debounce"
@@ -20,6 +21,7 @@ type WellKnownService struct {
 	namespace string
 	cmName    string
 
+	mu         sync.RWMutex
 	localCache *wkRegistry
 }
 
@@ -32,9 +34,12 @@ func NewWellKnownService(clientset *kubernetes.Clientset, namespace string, cmNa
 }
 
 func (s *WellKnownService) GetData(ctx context.Context) (*wkRegistry, error) {
+	s.mu.RLock()
 	if s.localCache != nil {
+		defer s.mu.RUnlock()
 		return s.localCache, nil
 	}
+	s.mu.RUnlock()
 
 	cm, err := s.clientset.CoreV1().ConfigMaps(s.namespace).Get(ctx, s.cmName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
@@ -56,7 +61,9 @@ func (s *WellKnownService) GetData(ctx context.Context) (*wkRegistry, error) {
 }
 
 func (s *WellKnownService) UpdateConfigMap(ctx context.Context, reg wkRegistry) error {
+	s.mu.Lock()
 	s.localCache = &reg
+	s.mu.Unlock()
 
 	encoded, err := reg.encode()
 	if err != nil {
@@ -99,6 +106,7 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 	}
 
 	debounced := debounce.New(500 * time.Millisecond)
+	var hashMu sync.Mutex
 	hash := []byte{}
 
 	for event := range watch.ResultChan() {
@@ -116,6 +124,8 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 			}
 
 			newHash := deephash.Hash(reg)
+			hashMu.Lock()
+			defer hashMu.Unlock()
 			if string(hash) == string(newHash) {
 				klog.V(1).Info("No changes detected")
 				return
