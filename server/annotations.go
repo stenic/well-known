@@ -2,12 +2,13 @@ package main
 
 import "regexp"
 
+var annotationRegex = regexp.MustCompile(`^well-known.stenic.io/(.+)$`)
+
 func resolveName(name string) string {
-	r := regexp.MustCompile(`^well-known.stenic.io/(.+)$`)
-	if !r.MatchString(name) {
+	if !annotationRegex.MatchString(name) {
 		return ""
 	}
-	m := r.FindStringSubmatch(name)
+	m := annotationRegex.FindStringSubmatch(name)
 	if len(m) != 2 {
 		return ""
 	}

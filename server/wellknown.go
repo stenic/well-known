@@ -16,8 +16,6 @@ import (
 	klog "k8s.io/klog/v2"
 )
 
-var regLocal *wkRegistry
-
 type WellKnownService struct {
 	clientset *kubernetes.Clientset
 	namespace string
