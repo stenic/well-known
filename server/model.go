@@ -21,19 +21,18 @@ func (d wkData) append(data map[string]interface{}) {
 
 type wkRegistry map[string]wkData
 
-func (reg wkRegistry) encode() map[string]string {
+func (reg wkRegistry) encode() (map[string]string, error) {
 	d := make(map[string]string, len(reg))
 
 	for name, data := range reg {
 		file, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			klog.Error(err)
-		} else {
-			d[name+".json"] = string(file)
+			return nil, err
 		}
+		d[name+".json"] = string(file)
 	}
 
-	return d
+	return d, nil
 }
 
 func mergeStructs(x1, x2 interface{}) interface{} {

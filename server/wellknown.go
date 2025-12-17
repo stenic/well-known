@@ -58,11 +58,16 @@ func (s *WellKnownService) GetData(ctx context.Context) (*wkRegistry, error) {
 func (s *WellKnownService) UpdateConfigMap(ctx context.Context, reg wkRegistry) error {
 	s.localCache = &reg
 
-	cm := &v1.ConfigMap{Data: reg.encode()}
+	encoded, err := reg.encode()
+	if err != nil {
+		return err
+	}
+
+	cm := &v1.ConfigMap{Data: encoded}
 	cm.Namespace = s.namespace
 	cm.Name = s.cmName
 
-	_, err := s.clientset.
+	_, err = s.clientset.
 		CoreV1().
 		ConfigMaps(s.namespace).
 		Update(ctx, cm, metav1.UpdateOptions{})
@@ -151,7 +156,8 @@ func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) 
 			var d map[string]any
 			err := json.Unmarshal([]byte(value), &d)
 			if err != nil {
-				klog.Error(err)
+				klog.Errorf("Failed to unmarshal annotation %s: %v", name, err)
+				continue
 			}
 
 			reg[name].append(d)

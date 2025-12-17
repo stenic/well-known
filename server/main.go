@@ -57,7 +57,7 @@ func getClientset() *kubernetes.Clientset {
 	if err != nil {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			panic(err.Error())
+			klog.Fatal(err)
 		}
 	}
 

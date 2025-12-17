@@ -40,7 +40,9 @@ func Test_wkRegistry_encode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.reg.encode(), "expected: %v, got: %v", tt.want, tt.reg.encode())
+			got, err := tt.reg.encode()
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got, "expected: %v, got: %v", tt.want, got)
 		})
 	}
 }
