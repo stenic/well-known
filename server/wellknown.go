@@ -10,6 +10,7 @@ import (
 	"github.com/bep/debounce"
 	"github.com/davegardnerisme/deephash"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +18,7 @@ import (
 )
 
 type WellKnownService struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 	namespace string
 	cmName    string
 
@@ -25,7 +26,7 @@ type WellKnownService struct {
 	localCache *wkRegistry
 }
 
-func NewWellKnownService(clientset *kubernetes.Clientset, namespace string, cmName string) *WellKnownService {
+func NewWellKnownService(clientset kubernetes.Interface, namespace string, cmName string) *WellKnownService {
 	return &WellKnownService{
 		clientset: clientset,
 		namespace: namespace,
@@ -97,49 +98,74 @@ func (s *WellKnownService) UpdateConfigMap(ctx context.Context, reg wkRegistry) 
 }
 
 func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
-	watch, err := s.clientset.
+	svcWatch, err := s.clientset.
 		CoreV1().
 		Services(s.namespace).
 		Watch(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	defer watch.Stop()
+	defer svcWatch.Stop()
+
+	ingWatch, err := s.clientset.
+		NetworkingV1().
+		Ingresses(s.namespace).
+		Watch(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	defer ingWatch.Stop()
 
 	debounced := debounce.New(500 * time.Millisecond)
 	var hashMu sync.Mutex
 	hash := []byte{}
 
-	for event := range watch.ResultChan() {
-		svc, ok := event.Object.(*v1.Service)
-		if !ok {
-			continue
+	for {
+		select {
+		case event, ok := <-svcWatch.ResultChan():
+			if !ok {
+				return nil
+			}
+			if svc, ok := event.Object.(*v1.Service); ok {
+				klog.V(1).Infof("Change detected on Service %s", svc.GetName())
+				s.handleEvent(ctx, debounced, &hashMu, &hash)
+			}
+		case event, ok := <-ingWatch.ResultChan():
+			if !ok {
+				return nil
+			}
+			if ing, ok := event.Object.(*networkingv1.Ingress); ok {
+				klog.V(1).Infof("Change detected on Ingress %s", ing.GetName())
+				s.handleEvent(ctx, debounced, &hashMu, &hash)
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
-		klog.V(1).Infof("Change detected on %s", svc.GetName())
-
-		debounced(func() {
-			reg, err := s.collectData(ctx)
-			if err != nil {
-				klog.Error(err)
-				return
-			}
-
-			newHash := deephash.Hash(reg)
-			hashMu.Lock()
-			defer hashMu.Unlock()
-			if string(hash) == string(newHash) {
-				klog.V(1).Info("No changes detected")
-				return
-			}
-			hash = newHash
-
-			klog.Info("Writing configmap")
-			if err := s.UpdateConfigMap(ctx, reg); err != nil {
-				klog.Error(err)
-			}
-		})
 	}
-	return nil
+}
+
+func (s *WellKnownService) handleEvent(ctx context.Context, debounced func(func()), hashMu *sync.Mutex, hash *[]byte) {
+	debounced(func() {
+		reg, err := s.collectData(ctx)
+		if err != nil {
+			klog.Error(err)
+			return
+		}
+
+		newHash := deephash.Hash(reg)
+		hashMu.Lock()
+		defer hashMu.Unlock()
+		if string(*hash) == string(newHash) {
+			klog.V(1).Info("No changes detected")
+			return
+		}
+		*hash = newHash
+
+		klog.Info("Writing configmap")
+		if err := s.UpdateConfigMap(ctx, reg); err != nil {
+			klog.Error(err)
+		}
+	})
 }
 
 func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) {
@@ -154,25 +180,42 @@ func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) 
 	}
 
 	for _, svc := range svcs.Items {
-		for name, value := range svc.ObjectMeta.Annotations {
-			name = resolveName(name)
-			if name == "" {
-				continue
-			}
-
-			if _, ok := reg[name]; !ok {
-				reg[name] = make(wkData, 0)
-			}
-
-			var d map[string]any
-			err := json.Unmarshal([]byte(value), &d)
-			if err != nil {
-				klog.Errorf("Failed to unmarshal annotation %s: %v", name, err)
-				continue
-			}
-
-			reg[name].append(d)
-		}
+		s.collectAnnotations(reg, svc.ObjectMeta.Annotations)
 	}
+
+	ingresses, err := s.clientset.
+		NetworkingV1().
+		Ingresses(s.namespace).
+		List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return reg, err
+	}
+
+	for _, ing := range ingresses.Items {
+		s.collectAnnotations(reg, ing.ObjectMeta.Annotations)
+	}
+
 	return reg, nil
+}
+
+func (s *WellKnownService) collectAnnotations(reg wkRegistry, annotations map[string]string) {
+	for name, value := range annotations {
+		name = resolveName(name)
+		if name == "" {
+			continue
+		}
+
+		if _, ok := reg[name]; !ok {
+			reg[name] = make(wkData, 0)
+		}
+
+		var d map[string]any
+		err := json.Unmarshal([]byte(value), &d)
+		if err != nil {
+			klog.Errorf("Failed to unmarshal annotation %s: %v", name, err)
+			continue
+		}
+
+		reg[name].append(d)
+	}
 }

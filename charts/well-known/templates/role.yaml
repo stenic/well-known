@@ -15,6 +15,14 @@ rules:
   - list
   - get
 - apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - watch
+  - list
+  - get
+- apiGroups:
   - ""
   resources:
   - configmaps
