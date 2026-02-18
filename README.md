@@ -1,7 +1,11 @@
 # Well-known
 
-A tiny service collecting and aggregating [well-known](https://www.rfc-editor.org/rfc/rfc5785) data from
-Services and Ingresses in the same Kubernetes namespace. The data is merged and exposed as a JSON object.
+A tiny service collecting and aggregating [well-known](https://www.rfc-editor.org/rfc/rfc5785) data from Services and
+Ingresses in the same Kubernetes namespace. The data is merged and exposed as a JSON object.
+
+## Installation
+
+See the [Helm chart documentation](./charts/well-known/README.md).
 
 ## Usage
 
