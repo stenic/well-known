@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.9.0](https://github.com/stenic/well-known/compare/v1.8.3...v1.9.0) (2026-02-18)
+
+
+### Features
+
+* Add support for ingress annotations ([72b0f9d](https://github.com/stenic/well-known/commit/72b0f9d98f8fd0a707a2c5083df8928276140316))
+
 ## [1.8.3](https://github.com/stenic/well-known/compare/v1.8.2...v1.8.3) (2025-12-17)
 
 
