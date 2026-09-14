@@ -50,6 +50,7 @@ The following tables list the configurable parameters of the well-known chart an
 | autoscaling.maxReplicas | int | `100` |  |
 | autoscaling.minReplicas | int | `1` |  |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
+| customResources | list | `["gateway.networking.k8s.io/v1/gateways","gateway.networking.k8s.io/v1/httproutes"]` | Namespaced custom resources to discover, as group/version/resource. |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"Always"` |  |
 | image.repository | string | `"ghcr.io/stenic/well-known"` |  |

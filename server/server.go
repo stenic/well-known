@@ -14,7 +14,7 @@ func GetHealthServer() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 	return mux
 }
@@ -25,13 +25,13 @@ func GetServer(wks WellKnownGetter) http.Handler {
 		reg, err := wks.GetData(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Failed to fetch well-known records"))
+			_, _ = w.Write([]byte("Failed to fetch well-known records"))
 			return
 		}
 
 		if reg == nil {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
+			_, _ = w.Write([]byte("Not found"))
 			return
 		}
 
@@ -41,17 +41,17 @@ func GetServer(wks WellKnownGetter) http.Handler {
 			b, err := json.Marshal(val)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("Failed to encode"))
+				_, _ = w.Write([]byte("Failed to encode"))
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			w.Write(b)
+			_, _ = w.Write(b)
 			return
 		}
 
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Not found"))
+		_, _ = w.Write([]byte("Not found"))
 	})
 
 	return mux
