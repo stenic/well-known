@@ -22,6 +22,17 @@ rules:
   - watch
   - list
   - get
+{{- range .Values.customResources }}
+{{- $resource := splitList "/" . }}
+- apiGroups:
+  - {{ index $resource 0 | quote }}
+  resources:
+  - {{ index $resource 2 | quote }}
+  verbs:
+  - watch
+  - list
+  - get
+{{- end }}
 - apiGroups:
   - ""
   resources:

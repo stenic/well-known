@@ -15,7 +15,8 @@ func Test_wkData_append(t *testing.T) {
 	}{
 		{"empty", wkData{}, wkData{"a": 1}, wkData{"a": 1}},
 		{"append", wkData{"a": 1}, wkData{"b": 2}, wkData{"a": 1, "b": 2}},
-		{"existing", wkData{"a": "a", "b": "b"}, wkData{"a": "aa"}, wkData{"a": "a", "b": "b"}},
+		{"existing", wkData{"a": "a", "b": "b"}, wkData{"a": "aa"}, wkData{"a": "aa", "b": "b"}},
+		{"slice", wkData{"a": []interface{}{1}}, wkData{"a": []interface{}{2}}, wkData{"a": []interface{}{1, 2}}},
 		{"nested", wkData{"a": map[string]interface{}{"nest": "value"}}, wkData{"b": 2}, wkData{"b": 2, "a": map[string]interface{}{"nest": "value"}}},
 		{"nestedExist", wkData{"a": map[string]interface{}{"nest": "value"}}, wkData{"a": 2}, wkData{"a": map[string]interface{}{"nest": "value"}}},
 		{"nestedExistMerge", wkData{"a": map[string]interface{}{"nest": "value"}}, wkData{"a": map[string]interface{}{"nest2": "value2"}}, wkData{"a": map[string]interface{}{"nest": "value", "nest2": "value2"}}},

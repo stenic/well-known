@@ -9,11 +9,35 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
+
+func TestParseResources(t *testing.T) {
+	resources, err := parseResources("example.com/v1/widgets,example.com/v1beta1/gadgets")
+	require.NoError(t, err)
+	assert.Equal(t, []schema.GroupVersionResource{
+		{Group: "example.com", Version: "v1", Resource: "widgets"},
+		{Group: "example.com", Version: "v1beta1", Resource: "gadgets"},
+	}, resources)
+
+	for _, value := range []string{
+		"example.com/widgets",
+		"Example.com/v1/widgets",
+		"example.com/V1/widgets",
+		"example.com/v1/Widgets",
+	} {
+		_, err = parseResources(value)
+		assert.Error(t, err, value)
+	}
+}
 
 func TestCollectData_ServicesOnly(t *testing.T) {
 	clientset := fake.NewSimpleClientset(
@@ -98,6 +122,111 @@ func TestCollectData_ServicesAndIngresses(t *testing.T) {
 	assert.Len(t, reg, 2)
 	assert.Equal(t, wkData{"issuer": "https://example.com"}, reg["openid-configuration"])
 	assert.Equal(t, wkData{"contact": "security@example.com"}, reg["security.txt"])
+}
+
+func TestDiscoveryLoop_CollectsConfiguredResources(t *testing.T) {
+	configuredResources := []schema.GroupVersionResource{
+		{Group: "example.com", Version: "v1", Resource: "widgets"},
+		{Group: "example.com", Version: "v1beta1", Resource: "gadgets"},
+	}
+	widget := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "example.com/v1",
+		"kind":       "Widget",
+		"metadata": map[string]any{
+			"name":      "widget-a",
+			"namespace": "default",
+			"annotations": map[string]any{
+				"well-known.stenic.io/config": `{"from_widget":"true"}`,
+			},
+		},
+	}}
+	gadget := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "example.com/v1beta1",
+		"kind":       "Gadget",
+		"metadata": map[string]any{
+			"name":      "gadget-a",
+			"namespace": "default",
+			"annotations": map[string]any{
+				"well-known.stenic.io/config": `{"from_gadget":"true"}`,
+			},
+		},
+	}}
+
+	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
+		runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{
+			configuredResources[0]: "WidgetList",
+			configuredResources[1]: "GadgetList",
+		},
+	)
+	svc := &WellKnownService{
+		clientset:     fake.NewSimpleClientset(),
+		dynamicClient: dynamicClient,
+		namespace:     "default",
+		cmName:        "test-cm",
+		resources:     configuredResources,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+	go func() { errCh <- svc.DiscoveryLoop(ctx) }()
+
+	require.Eventually(t, func() bool {
+		reg, err := svc.GetData(ctx)
+		return err == nil && reg != nil
+	}, 2*time.Second, 20*time.Millisecond)
+	_, err := dynamicClient.Resource(configuredResources[0]).Namespace("default").Create(ctx, widget, metav1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = dynamicClient.Resource(configuredResources[1]).Namespace("default").Create(ctx, gadget, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		reg, err := svc.GetData(ctx)
+		return err == nil && reg != nil && (*reg)["config"]["from_widget"] == "true" && (*reg)["config"]["from_gadget"] == "true"
+	}, 2*time.Second, 20*time.Millisecond)
+	cancel()
+	require.ErrorIs(t, <-errCh, context.Canceled)
+}
+
+func TestDiscoveryLoop_IgnoresMissingConfiguredResource(t *testing.T) {
+	resource := schema.GroupVersionResource{Group: "example.com", Version: "v1", Resource: "widgets"}
+	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
+		runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{resource: "WidgetList"},
+	)
+	notFound := apierrors.NewNotFound(resource.GroupResource(), "")
+	dynamicClient.PrependWatchReactor(resource.Resource, func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, nil, notFound
+	})
+	dynamicClient.PrependReactor("list", resource.Resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, notFound
+	})
+
+	clientset := fake.NewSimpleClientset(&v1.Service{ObjectMeta: metav1.ObjectMeta{
+		Name:      "svc-a",
+		Namespace: "default",
+		Annotations: map[string]string{
+			"well-known.stenic.io/config": `{"from_service":"true"}`,
+		},
+	}})
+	svc := &WellKnownService{
+		clientset:     clientset,
+		dynamicClient: dynamicClient,
+		namespace:     "default",
+		cmName:        "test-cm",
+		resources:     []schema.GroupVersionResource{resource},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+	go func() { errCh <- svc.DiscoveryLoop(ctx) }()
+
+	require.Eventually(t, func() bool {
+		reg, err := svc.GetData(ctx)
+		return err == nil && reg != nil && (*reg)["config"]["from_service"] == "true"
+	}, 2*time.Second, 20*time.Millisecond)
+	cancel()
+	require.ErrorIs(t, <-errCh, context.Canceled)
 }
 
 func TestCollectData_MergesAnnotationsFromBothTypes(t *testing.T) {
@@ -285,8 +414,10 @@ func TestDiscoveryLoop_ReactsToServiceEvents(t *testing.T) {
 	// Wait for debounce + processing
 	time.Sleep(700 * time.Millisecond)
 
-	assert.NotNil(t, svc.localCache)
-	assert.Equal(t, "from-service", (*svc.localCache)["test"]["key"])
+	reg, err := svc.GetData(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, reg)
+	assert.Equal(t, "from-service", (*reg)["test"]["key"])
 
 	cancel()
 }
@@ -326,8 +457,10 @@ func TestDiscoveryLoop_ReactsToIngressEvents(t *testing.T) {
 	// Wait for debounce + processing
 	time.Sleep(700 * time.Millisecond)
 
-	assert.NotNil(t, svc.localCache)
-	assert.Equal(t, "from-ingress", (*svc.localCache)["test"]["key"])
+	reg, err := svc.GetData(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, reg)
+	assert.Equal(t, "from-ingress", (*reg)["test"]["key"])
 
 	cancel()
 }
@@ -379,10 +512,12 @@ func TestDiscoveryLoop_ReactsToBothEventTypes(t *testing.T) {
 	// Wait for debounce + processing
 	time.Sleep(700 * time.Millisecond)
 
-	assert.NotNil(t, svc.localCache)
-	assert.Len(t, *svc.localCache, 2)
-	assert.Equal(t, "service", (*svc.localCache)["svc-config"]["origin"])
-	assert.Equal(t, "ingress", (*svc.localCache)["ing-config"]["origin"])
+	reg, err := svc.GetData(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, reg)
+	assert.Len(t, *reg, 2)
+	assert.Equal(t, "service", (*reg)["svc-config"]["origin"])
+	assert.Equal(t, "ingress", (*reg)["ing-config"]["origin"])
 
 	cancel()
 }
