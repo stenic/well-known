@@ -13,24 +13,31 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	klog "k8s.io/klog/v2"
 )
 
 type WellKnownService struct {
-	clientset kubernetes.Interface
-	namespace string
-	cmName    string
+	clientset     kubernetes.Interface
+	dynamicClient dynamic.Interface
+	namespace     string
+	cmName        string
+	resources     []schema.GroupVersionResource
 
 	mu         sync.RWMutex
 	localCache *wkRegistry
 }
 
-func NewWellKnownService(clientset kubernetes.Interface, namespace string, cmName string) *WellKnownService {
+func NewWellKnownService(clientset kubernetes.Interface, dynamicClient dynamic.Interface, namespace string, cmName string, resources []schema.GroupVersionResource) *WellKnownService {
 	return &WellKnownService{
-		clientset: clientset,
-		namespace: namespace,
-		cmName:    cmName,
+		clientset:     clientset,
+		dynamicClient: dynamicClient,
+		namespace:     namespace,
+		cmName:        cmName,
+		resources:     resources,
 	}
 }
 
@@ -116,9 +123,52 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 	}
 	defer ingWatch.Stop()
 
+	type resourceEvent struct {
+		resource schema.GroupVersionResource
+		event    watch.Event
+		closed   bool
+	}
+	resourceEvents := make(chan resourceEvent)
+	resourceWatches := make([]watch.Interface, 0, len(s.resources))
+	resourceCtx, cancelResourceWatches := context.WithCancel(ctx)
+	defer func() {
+		cancelResourceWatches()
+		for _, resourceWatch := range resourceWatches {
+			resourceWatch.Stop()
+		}
+	}()
+	if s.dynamicClient != nil {
+		for _, resource := range s.resources {
+			resourceWatch, err := s.dynamicClient.Resource(resource).Namespace(s.namespace).Watch(resourceCtx, metav1.ListOptions{})
+			if errors.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			resourceWatches = append(resourceWatches, resourceWatch)
+			go func() {
+				for {
+					select {
+					case event, ok := <-resourceWatch.ResultChan():
+						select {
+						case resourceEvents <- resourceEvent{resource: resource, event: event, closed: !ok}:
+						case <-resourceCtx.Done():
+						}
+						if !ok {
+							return
+						}
+					case <-resourceCtx.Done():
+						return
+					}
+				}
+			}()
+		}
+	}
 	debounced := debounce.New(500 * time.Millisecond)
 	var hashMu sync.Mutex
 	hash := []byte{}
+	s.handleEvent(ctx, debounced, &hashMu, &hash)
 
 	for {
 		select {
@@ -136,6 +186,14 @@ func (s *WellKnownService) DiscoveryLoop(ctx context.Context) error {
 			}
 			if ing, ok := event.Object.(*networkingv1.Ingress); ok {
 				klog.V(1).Infof("Change detected on Ingress %s", ing.GetName())
+				s.handleEvent(ctx, debounced, &hashMu, &hash)
+			}
+		case resourceEvent := <-resourceEvents:
+			if resourceEvent.closed {
+				return nil
+			}
+			if object, ok := resourceEvent.event.Object.(metav1.Object); ok {
+				klog.V(1).Infof("Change detected on %s %s", resourceEvent.resource.Resource, object.GetName())
 				s.handleEvent(ctx, debounced, &hashMu, &hash)
 			}
 		case <-ctx.Done():
@@ -180,7 +238,7 @@ func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) 
 	}
 
 	for _, svc := range svcs.Items {
-		s.collectAnnotations(reg, svc.ObjectMeta.Annotations)
+		s.collectAnnotations(reg, svc.Annotations)
 	}
 
 	ingresses, err := s.clientset.
@@ -192,7 +250,22 @@ func (s *WellKnownService) collectData(ctx context.Context) (wkRegistry, error) 
 	}
 
 	for _, ing := range ingresses.Items {
-		s.collectAnnotations(reg, ing.ObjectMeta.Annotations)
+		s.collectAnnotations(reg, ing.Annotations)
+	}
+
+	if s.dynamicClient != nil {
+		for _, resource := range s.resources {
+			items, err := s.dynamicClient.Resource(resource).Namespace(s.namespace).List(ctx, metav1.ListOptions{})
+			if errors.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return reg, err
+			}
+			for _, item := range items.Items {
+				s.collectAnnotations(reg, item.GetAnnotations())
+			}
+		}
 	}
 
 	return reg, nil

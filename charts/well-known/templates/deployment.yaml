@@ -35,10 +35,13 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: [
-            "-namespace", "{{ .Release.Namespace }}",
-            "-configmap", "{{ include "well-known.fullname" . }}-data"
-          ]
+          args:
+            - -namespace
+            - {{ .Release.Namespace | quote }}
+            - -configmap
+            - {{ printf "%s-data" (include "well-known.fullname" .) | quote }}
+            - -resources
+            - {{ join "," .Values.customResources | quote }}
           env:
             - name: POD_NAME
               valueFrom:

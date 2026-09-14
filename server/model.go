@@ -40,22 +40,22 @@ func mergeStructs(x1, x2 interface{}) interface{} {
 		return x1
 	}
 
-	switch x1 := x1.(type) {
+	switch value := x1.(type) {
 	case []interface{}:
-		x1 = append(x1, x2.([]interface{})...)
+		x1 = append(value, x2.([]interface{})...)
 	case string:
 		x1 = x2.(string)
 	case map[string]interface{}:
 		x2 := x2.(map[string]interface{})
 		for k, v2 := range x2 {
-			if v1, ok := x1[k]; ok {
-				x1[k] = mergeStructs(v1, v2)
+			if v1, ok := value[k]; ok {
+				value[k] = mergeStructs(v1, v2)
 			} else {
-				x1[k] = v2
+				value[k] = v2
 			}
 		}
 	default:
-		klog.Warningf("unknown type: %T", x1)
+		klog.Warningf("unknown type: %T", value)
 	}
 	return x1
 }

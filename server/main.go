@@ -2,15 +2,21 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
@@ -30,6 +36,12 @@ var (
 
 	serverPort string
 	healthPort string
+	resources  []schema.GroupVersionResource
+)
+
+const (
+	defaultResources     = "gateway.networking.k8s.io/v1/gateways,gateway.networking.k8s.io/v1/httproutes"
+	discoveryRetryPeriod = 5 * time.Second
 )
 
 func parseFlags() {
@@ -45,14 +57,45 @@ func parseFlags() {
 	flag.StringVar(&leaseLockName, "lease-lock-name", "well-known", "the lease lock resource name")
 	flag.StringVar(&serverPort, "server-port", "8080", "server port")
 	flag.StringVar(&healthPort, "health-port", "8081", "health port")
+	resourcesValue := flag.String("resources", defaultResources, "comma-separated namespaced resources to discover as group/version/resource")
 	flag.Parse()
+	var err error
+	resources, err = parseResources(*resourcesValue)
+	if err != nil {
+		klog.Fatal(err)
+	}
 
 	if id == "" {
 		klog.Fatal("id is required")
 	}
 }
 
-func getClientset() *kubernetes.Clientset {
+func parseResources(value string) ([]schema.GroupVersionResource, error) {
+	if value == "" {
+		return nil, nil
+	}
+
+	resources := make([]schema.GroupVersionResource, 0)
+	for _, value := range strings.Split(value, ",") {
+		parts := strings.Split(value, "/")
+		if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
+			return nil, fmt.Errorf("invalid resource %q: expected group/version/resource", value)
+		}
+		if problems := validation.IsDNS1123Subdomain(parts[0]); len(problems) > 0 {
+			return nil, fmt.Errorf("invalid resource %q: group %s", value, strings.Join(problems, ", "))
+		}
+		if problems := validation.IsDNS1035Label(parts[1]); len(problems) > 0 {
+			return nil, fmt.Errorf("invalid resource %q: version %s", value, strings.Join(problems, ", "))
+		}
+		if problems := validation.IsDNS1035Label(parts[2]); len(problems) > 0 {
+			return nil, fmt.Errorf("invalid resource %q: resource %s", value, strings.Join(problems, ", "))
+		}
+		resources = append(resources, schema.GroupVersionResource{Group: parts[0], Version: parts[1], Resource: parts[2]})
+	}
+	return resources, nil
+}
+
+func getClients() (*kubernetes.Clientset, dynamic.Interface) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -66,7 +109,12 @@ func getClientset() *kubernetes.Clientset {
 		klog.Fatal(err)
 	}
 
-	return clientset
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	return clientset, dynamicClient
 }
 
 func main() {
@@ -90,9 +138,9 @@ func main() {
 	}()
 
 	// Connect to the cluster
-	clientset := getClientset()
+	clientset, dynamicClient := getClients()
 
-	wks := NewWellKnownService(clientset, namespace, cmName)
+	wks := NewWellKnownService(clientset, dynamicClient, namespace, cmName, resources)
 
 	// Start the server
 	go func() {
@@ -135,8 +183,13 @@ func main() {
 					case <-ctx.Done():
 						return
 					default:
-						if err := wks.DiscoveryLoop(ctx); err != nil {
+						if err := wks.DiscoveryLoop(ctx); err != nil && !errors.Is(err, context.Canceled) {
 							klog.Error(err)
+						}
+						select {
+						case <-ctx.Done():
+							return
+						case <-time.After(discoveryRetryPeriod):
 						}
 					}
 				}

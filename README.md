@@ -1,7 +1,9 @@
 # Well-known
 
-A tiny service collecting and aggregating [well-known](https://www.rfc-editor.org/rfc/rfc5785) data from Services and
-Ingresses in the same Kubernetes namespace. The data is merged and exposed as a JSON object.
+A tiny service collecting and aggregating [well-known](https://www.rfc-editor.org/rfc/rfc5785) data from Services,
+Ingresses, Gateways, and HTTPRoutes in the same Kubernetes namespace. The data is merged and exposed as a JSON object.
+Gateway API resources are read from the stable `gateway.networking.k8s.io/v1` API by default. The Helm
+`customResources` value accepts any namespaced custom resource as `group/version/resource`.
 
 ## Installation
 
@@ -9,7 +11,7 @@ See the [Helm chart documentation](./charts/well-known/README.md).
 
 ## Usage
 
-Add an annotation to a Service or Ingress:
+Add an annotation to a Service, Ingress, Gateway, or HTTPRoute:
 
 | annotation                     | path                  |
 | ------------------------------ | --------------------- |
@@ -17,7 +19,7 @@ Add an annotation to a Service or Ingress:
 
 ## Example
 
-Annotations with the same path are merged across all Services and Ingresses in the namespace.
+Annotations with the same path are merged across all supported resources in the namespace.
 
 ```yaml
 apiVersion: v1
