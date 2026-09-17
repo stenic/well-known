@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/stenic/well-known/compare/v1.9.0...v1.10.0) (2026-09-17)
+
+
+### Features
+
+* Add configurable resource discovery ([0e1af1e](https://github.com/stenic/well-known/commit/0e1af1e49aa494c8077f9053d6604e072eb67146))
+
 # [1.9.0](https://github.com/stenic/well-known/compare/v1.8.3...v1.9.0) (2026-02-18)
 
 
