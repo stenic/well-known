@@ -1,6 +1,9 @@
 ingress:
   enabled: true
 
+httpRoute:
+  enabled: true
+
 autoscaling:
   enabled: true
 

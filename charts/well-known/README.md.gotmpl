@@ -15,6 +15,7 @@ This chart installs `{{ template "chart.name" . }}` on a [Kubernetes](http://kub
 
 - Kubernetes 1.18+
 - Helm 3.0+
+- Gateway API CRDs serving `gateway.networking.k8s.io/v1` when `httpRoute.enabled=true`
 
 
 ## Installing the Chart
@@ -27,6 +28,8 @@ helm install well-known --namespace well-known well-known/{{ template "chart.nam
 ```
 
 These commands deploy {{ template "chart.name" . }} on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+
+When enabled, `httpRoute.rule` accepts additional HTTPRoute rule fields such as filters and timeouts. The chart matches `/.well-known/` and forwards it to the Service it creates.
 
 > **Tip**: List all releases using `helm list`
 
