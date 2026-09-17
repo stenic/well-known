@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.11.0](https://github.com/stenic/well-known/compare/v1.10.0...v1.11.0) (2026-09-17)
+
+
+### Features
+
+* Add HTTPRoute exposure ([0a46aac](https://github.com/stenic/well-known/commit/0a46aac9653212c177e2f51c5b4272f5665ebd6c))
+
 # [1.10.0](https://github.com/stenic/well-known/compare/v1.9.0...v1.10.0) (2026-09-17)
 
 
